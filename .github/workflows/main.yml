@@ -65,16 +65,16 @@ jobs:
           cd windows_exporter
           go mod tidy
           mkdir -p ../.build/windows-amd64 ../.build/windows-arm64
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o ../.build/windows-amd64/windows_exporter.exe ./cmd/windows_exporter
-          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -o ../.build/windows-arm64/windows_exporter.exe ./cmd/windows_exporter
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o ../.build/windows-amd64/windows_exporter-amd64.exe ./cmd/windows_exporter
+          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -o ../.build/windows-arm64/windows_exporter-arm64.exe ./cmd/windows_exporter
 
       - name: 上传 Windows 多架构二进制文件
         uses: actions/upload-artifact@v4
         with:
           name: windows_exporter-binaries
           path: |
-            .build/windows-amd64/windows_exporter.exe
-            .build/windows-arm64/windows_exporter.exe
+            .build/windows-amd64/windows_exporter-amd64.exe
+            .build/windows-arm64/windows_exporter-arm64.exe
 
       - name: 设置 QEMU（支持多平台 Docker 构建）
         uses: docker/setup-qemu-action@v3.2.0
@@ -112,8 +112,8 @@ jobs:
           tag_name: latest
           name: Latest Release
           files: |
-            .build/windows-amd64/windows_exporter.exe
-            .build/windows-arm64/windows_exporter.exe
+            .build/windows-amd64/windows_exporter-amd64.exe
+            .build/windows-arm64/windows_exporter-arm64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
