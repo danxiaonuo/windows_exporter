@@ -59,10 +59,11 @@ jobs:
 
       - name: 构建 Windows 多架构二进制文件
         run: |
+          cd windows_exporter
           go mod tidy
-          mkdir -p .build/windows-amd64 .build/windows-arm64
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o .build/windows-amd64/windows_exporter.exe ./windows_exporter/cmd/windows_exporter
-          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -o .build/windows-arm64/windows_exporter.exe ./windows_exporter/cmd/windows_exporter
+          mkdir -p ../.build/windows-amd64 ../.build/windows-arm64
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o ../.build/windows-amd64/windows_exporter.exe ./cmd/windows_exporter
+          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -o ../.build/windows-arm64/windows_exporter.exe ./cmd/windows_exporter
 
       - name: 上传 Windows 多架构二进制文件
         uses: actions/upload-artifact@v4
