@@ -130,5 +130,4 @@ jobs:
         with:
           age: '1min'
           skip-recent: 1
-        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
