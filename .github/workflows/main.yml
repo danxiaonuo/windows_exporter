@@ -97,7 +97,7 @@ jobs:
         with:
           file: ./windows_exporter/Dockerfile
           context: .
-          platforms: windows/amd64,windows/arm64
+          platforms: windows/amd64
           push: true
           tags: |
             ${{ github.repository_owner }}/windows_exporter:latest
