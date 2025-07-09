@@ -1,0 +1,3 @@
+[submodule "windows_exporter"]
+	path = windows_exporter
+	url = https://github.com/prometheus-community/windows_exporter
