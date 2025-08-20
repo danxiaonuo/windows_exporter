@@ -15,6 +15,10 @@ on:
   watch:  
      types: [started]
 
+permissions:
+  contents: write
+  actions: write
+  
 jobs:
   sync:
     name: '子模块自动同步'
@@ -47,3 +51,12 @@ jobs:
         git config --global user.email 'bot@noreply.github.com'
         git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
         git commit -am "Auto updated submodule references" && git push || echo "无变更，无需提交" 
+
+    # 第四步：删除旧的workflow runs
+    - name: 删除 workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        repository: ${{ github.repository }}
+        retain_days: 0
+        keep_minimum_runs: 1
