@@ -62,11 +62,10 @@ jobs:
           go-winres make
 
       - name: 设置版本信息环境变量
-        working-directory: windows_exporter
         run: |
           # 优先使用 VERSION 文件中的版本号
-          if [ -f "VERSION" ]; then
-            VERSION=$(cat VERSION | tr -d '\n\r')
+          if [ -f "windows_exporter/VERSION" ]; then
+            VERSION=$(cat windows_exporter/VERSION | tr -d '\n\r')
           elif git describe --tags --exact-match 2>/dev/null; then
             # 如果有精确的标签匹配，使用标签名
             VERSION=$(git describe --tags --exact-match)
@@ -88,17 +87,26 @@ jobs:
           echo "REVISION=$REVISION" >> $GITHUB_ENV
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
           # echo "BUILDUSER=$(whoami)@$(hostname)" >> $GITHUB_ENV
-          echo "BUILDUSER=xiaonuo" >> $GITHUB_ENV
+          echo "BUILDUSER=xiaonuo (Author: xiaonuo)" >> $GITHUB_ENV
           echo "BUILDDATE=$(TZ='Asia/Shanghai' date +'%Y-%m-%dT%H:%M:%S+08:00')" >> $GITHUB_ENV
+
+      - name: 调试版本信息
+        run: |
+          echo "VERSION: $VERSION"
+          echo "BRANCH: $BRANCH"
+          echo "REVISION: $REVISION"
+          echo "BUILDUSER: $BUILDUSER"
+          echo "BUILDDATE: $BUILDDATE"
 
       - name: 构建 Windows 多架构二进制文件
         run: |
           cd windows_exporter
           go mod tidy
           mkdir -p ../.build/windows-amd64 ../.build/windows-arm64
-          LD_FLAGS="-X 'main.Version=${VERSION}' -X 'main.Commit=${REVISION}' -X 'main.Branch=${BRANCH}' -X 'main.BuildUser=${BUILDUSER}' -X 'main.BuildDate=${BUILDDATE}'"
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="$LD_FLAGS" -o ../.build/windows-amd64/windows_exporter-amd64.exe ./cmd/windows_exporter
-          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags="$LD_FLAGS" -o ../.build/windows-arm64/windows_exporter-arm64.exe ./cmd/windows_exporter
+          LDFLAGS="-X 'github.com/prometheus/common/version.Version=${VERSION}' -X 'github.com/prometheus/common/version.Branch=${BRANCH}' -X 'github.com/prometheus/common/version.Revision=${REVISION}' -X 'github.com/prometheus/common/version.BuildUser=${BUILDUSER}' -X 'github.com/prometheus/common/version.BuildDate=${BUILDDATE}'"
+          echo "LDFLAGS: $LDFLAGS"
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="$LDFLAGS" -o ../.build/windows-amd64/windows_exporter-amd64.exe ./cmd/windows_exporter
+          CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -ldflags="$LDFLAGS" -o ../.build/windows-arm64/windows_exporter-arm64.exe ./cmd/windows_exporter
 
       - name: 上传 Windows 多架构二进制文件
         uses: actions/upload-artifact@v4
