@@ -41,7 +41,7 @@ jobs:
     # 第二步：获取最新版本信息
     - name: 获取最新版本
       run: |
-        cd node_exporter
+        cd windows_exporter
         git fetch --tags
         LATEST_VERSION=$(git tag --sort=-version:refname | grep '^v[0-9]' | head -1)
         echo "Latest version: $LATEST_VERSION"
@@ -50,7 +50,7 @@ jobs:
     # 第三步：检查当前版本
     - name: 检查当前版本
       run: |
-        cd node_exporter
+        cd windows_exporter
         if [ -f "VERSION" ]; then
           CURRENT_VERSION=$(cat VERSION)
           echo "Current version from VERSION file: $CURRENT_VERSION"
@@ -71,25 +71,25 @@ jobs:
 
         if [ "$CURRENT_VERSION_CLEAN" != "$LATEST_VERSION_CLEAN" ] && [ "$CURRENT_VERSION" != "unknown" ]; then
           echo "Updating from $CURRENT_VERSION to $LATEST_VERSION"
-          cd node_exporter
+          cd windows_exporter
           git checkout $LATEST_VERSION
           cd ..
-          git add node_exporter
+          git add windows_exporter
           git config --global user.name 'Git bot'
           git config --global user.email 'bot@noreply.github.com'
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git commit -m "Auto update node_exporter from $CURRENT_VERSION to $LATEST_VERSION"
+          git commit -m "Auto update windows_exporter from $CURRENT_VERSION to $LATEST_VERSION"
           git push
         elif [ "$CURRENT_VERSION" = "unknown" ]; then
           echo "Current version is unknown, updating to latest version $LATEST_VERSION"
-          cd node_exporter
+          cd windows_exporter
           git checkout $LATEST_VERSION
           cd ..
-          git add node_exporter
+          git add windows_exporter
           git config --global user.name 'Git bot'
           git config --global user.email 'bot@noreply.github.com'
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-          git commit -m "Auto update node_exporter to $LATEST_VERSION (unknown previous version)"
+          git commit -m "Auto update windows_exporter to $LATEST_VERSION (unknown previous version)"
           git push
         else
           echo "Already at latest version $LATEST_VERSION (cleaned: $CURRENT_VERSION_CLEAN = $LATEST_VERSION_CLEAN)"
