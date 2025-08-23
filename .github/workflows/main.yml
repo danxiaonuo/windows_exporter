@@ -70,9 +70,12 @@ jobs:
           elif git describe --tags --exact-match 2>/dev/null; then
             # 如果有精确的标签匹配，使用标签名
             VERSION=$(git describe --tags --exact-match)
-          else
+          elif git describe --tags --abbrev=0 2>/dev/null; then
             # 否则使用最近的标签（不包含距离和commit hash）
             VERSION=$(git describe --tags --abbrev=0)
+          else
+            # 如果没有标签，使用commit hash的前7位作为版本号
+            VERSION="dev-$(git rev-parse --short HEAD)"
           fi
 
           # 获取完整的commit hash作为revision
