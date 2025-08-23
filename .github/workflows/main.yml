@@ -64,18 +64,26 @@ jobs:
       - name: 设置版本信息环境变量
         working-directory: windows_exporter
         run: |
-          # 优先使用 VERSION 文件中的版本号
+          # 按照 Makefile 的逻辑获取版本号
+          # 1. 优先使用 VERSION 文件中的版本号
           if [ -f "VERSION" ]; then
             VERSION=$(cat VERSION | tr -d '\n\r')
-          elif git describe --tags --exact-match 2>/dev/null; then
-            # 如果有精确的标签匹配，使用标签名
-            VERSION=$(git describe --tags --exact-match)
+            echo "从 VERSION 文件获取版本号: $VERSION"
+
+          # 2. 使用 Git 标签作为版本号
           elif git describe --tags --abbrev=0 2>/dev/null; then
-            # 否则使用最近的标签（不包含距离和commit hash）
             VERSION=$(git describe --tags --abbrev=0)
+            echo "从 Git 标签获取版本号: $VERSION"
+
+          # 3. 如果有精确的标签匹配，使用精确标签
+          elif git describe --tags --exact-match 2>/dev/null; then
+            VERSION=$(git describe --tags --exact-match)
+            echo "从精确 Git 标签获取版本号: $VERSION"
+
+          # 4. 如果以上都没有，使用commit hash作为开发版本
           else
-            # 如果没有标签，使用commit hash的前7位作为版本号
             VERSION="dev-$(git rev-parse --short HEAD)"
+            echo "使用commit hash作为开发版本号: $VERSION"
           fi
 
           # 获取完整的commit hash作为revision
