@@ -64,6 +64,7 @@ jobs:
       - name: 设置版本信息环境变量
         working-directory: windows_exporter
         run: |
+          cd windows_exporter
           # 优先使用 VERSION 文件中的版本号
           if git describe --tags --exact-match 2>/dev/null; then
             # 如果有精确的标签匹配，使用标签名
