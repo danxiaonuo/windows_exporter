@@ -92,7 +92,7 @@ jobs:
             VERSION="dev-$(git rev-parse --short HEAD)"
             echo "使用commit hash作为开发版本号: $VERSION"
           fi
-		    
+		  
       - name: 调试版本信息
         run: |
           echo "VERSION: $VERSION"
