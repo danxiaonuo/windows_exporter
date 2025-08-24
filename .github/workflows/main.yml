@@ -100,6 +100,7 @@ jobs:
           echo "REVISION: $REVISION"
           echo "BUILDUSER: $BUILDUSER"
           echo "BUILDDATE: $BUILDDATE"
+          
       - name: 构建 Windows 多架构二进制文件
         working-directory: windows_exporter
         run: |
