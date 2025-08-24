@@ -31,6 +31,7 @@ jobs:
       - name: 检出代码（包含子模块）
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.CI_TOKEN }}
           submodules: true
 
       - name: 设置 Go 环境
