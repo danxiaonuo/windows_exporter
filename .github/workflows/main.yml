@@ -45,12 +45,9 @@ jobs:
           # 优先使用 VERSION 文件中的版本号
           if [ -f "VERSION" ]; then
             VERSION=$(cat VERSION | tr -d '\n\r')
-          elif git describe --tags --exact-match 2>/dev/null; then
-            # 如果有精确的标签匹配，使用标签名
-            VERSION=$(git describe --tags --exact-match)
           else
             # 否则使用最近的标签加上距离和commit hash
-            VERSION=$(git describe --tags --always)
+            VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags --always)
           fi
 
           # 获取完整的commit hash作为revision
