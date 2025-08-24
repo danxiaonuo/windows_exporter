@@ -64,6 +64,8 @@ jobs:
       - name: 设置版本信息环境变量
         working-directory: windows_exporter
         run: |
+          # 从远程仓库获取所有的 tag 到本地
+          git fetch --tags
           # 按照 Makefile 的逻辑获取版本号
           # 1. 优先使用 VERSION 文件中的版本号
           if [ -f "VERSION" ]; then
