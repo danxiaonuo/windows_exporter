@@ -69,8 +69,8 @@ jobs:
       - name: 设置版本信息环境变量
         working-directory: windows_exporter
         run: |
-          # 从远程仓库获取所有的 tag 到本地
-          git fetch --tags
+		  # 从远程仓库获取所有的 tag 到本地
+	      git fetch --tags
           # 按照 Makefile 的逻辑获取版本号
           # 1. 优先使用 VERSION 文件中的版本号
           if [ -f "VERSION" ]; then
@@ -92,6 +92,22 @@ jobs:
             VERSION="dev-$(git rev-parse --short HEAD)"
             echo "使用commit hash作为开发版本号: $VERSION"
           fi
+
+          # 获取完整的commit hash作为revision
+          REVISION=$(git rev-parse HEAD)
+
+          # 获取分支名，如果是detached HEAD则使用master
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" = "HEAD" ]; then
+            BRANCH="master"
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "REVISION=$REVISION" >> $GITHUB_ENV
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          # echo "BUILDUSER=$(whoami)@$(hostname)" >> $GITHUB_ENV
+          echo "BUILDUSER=xiaonuo (Author: xiaonuo)" >> $GITHUB_ENV
+          echo "BUILDDATE=$(TZ='Asia/Shanghai' date +'%Y-%m-%dT%H:%M:%S+08:00')" >> $GITHUB_ENV
 		  
       - name: 调试版本信息
         run: |
