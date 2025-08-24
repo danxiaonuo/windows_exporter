@@ -27,11 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.owner.id == github.event.sender.id || ! github.event.sender.id
 
-    # 所有 shell 命令均使用 bash
-    defaults:
-      run:
-        shell: bash
-        
     steps:
       - name: 检出代码（包含子模块）
         uses: actions/checkout@v4
@@ -69,7 +64,6 @@ jobs:
       - name: 设置版本信息环境变量
         working-directory: windows_exporter
         run: |
-          # 从远程仓库获取所有的 tag 到本地
           # 按照 Makefile 的逻辑获取版本号
           # 1. 优先使用 VERSION 文件中的版本号
           if [ -f "VERSION" ]; then
@@ -107,7 +101,7 @@ jobs:
           # echo "BUILDUSER=$(whoami)@$(hostname)" >> $GITHUB_ENV
           echo "BUILDUSER=xiaonuo (Author: xiaonuo)" >> $GITHUB_ENV
           echo "BUILDDATE=$(TZ='Asia/Shanghai' date +'%Y-%m-%dT%H:%M:%S+08:00')" >> $GITHUB_ENV
-		  
+
       - name: 调试版本信息
         run: |
           echo "VERSION: $VERSION"
@@ -115,7 +109,7 @@ jobs:
           echo "REVISION: $REVISION"
           echo "BUILDUSER: $BUILDUSER"
           echo "BUILDDATE: $BUILDDATE"
-          
+
       - name: 构建 Windows 多架构二进制文件
         working-directory: windows_exporter
         run: |
