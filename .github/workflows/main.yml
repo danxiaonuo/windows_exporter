@@ -36,43 +36,7 @@ jobs:
       - name: 检出代码（包含子模块）
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.CI_TOKEN }}
           submodules: true
-
-      - name: 设置版本信息环境变量
-        working-directory: windows_exporter
-        run: |
-          # 优先使用 VERSION 文件中的版本号
-          if [ -f "VERSION" ]; then
-            VERSION=$(cat VERSION | tr -d '\n\r')
-          else
-            # 否则使用最近的标签加上距离和commit hash
-            VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags --always)
-          fi
-
-          # 获取完整的commit hash作为revision
-          REVISION=$(git rev-parse HEAD)
-
-          # 获取分支名，如果是detached HEAD则使用master
-          BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          if [ "$BRANCH" = "HEAD" ]; then
-            BRANCH="master"
-          fi
-
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "REVISION=$REVISION" >> $GITHUB_ENV
-          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
-          # echo "BUILDUSER=$(whoami)@$(hostname)" >> $GITHUB_ENV
-          echo "BUILDUSER=xiaonuo (Author: xiaonuo)" >> $GITHUB_ENV
-          echo "BUILDDATE=$(TZ='Asia/Shanghai' date +'%Y-%m-%dT%H:%M:%S+08:00')" >> $GITHUB_ENV
-
-      - name: 调试版本信息
-        run: |
-          echo "VERSION: $VERSION"
-          echo "BRANCH: $BRANCH"
-          echo "REVISION: $REVISION"
-          echo "BUILDUSER: $BUILDUSER"
-          echo "BUILDDATE: $BUILDDATE"
 
       - name: 设置 Go 环境
         uses: actions/setup-go@v5
@@ -102,6 +66,40 @@ jobs:
           cd windows_exporter/cmd/windows_exporter
           go-winres make
 
+      - name: 设置版本信息环境变量
+        run: |
+          cd windows_exporter
+          # 优先使用 VERSION 文件中的版本号
+          if [ -f "VERSION" ]; then
+            VERSION=$(cat VERSION | tr -d '\n\r')
+          else
+            # 否则使用最近的标签加上距离和commit hash
+            VERSION=$(git describe --tags --exact-match 2>/dev/null || echo "unknown")
+          fi
+
+          # 获取完整的commit hash作为revision
+          REVISION=$(git rev-parse HEAD)
+
+          # 获取分支名，如果是detached HEAD则使用master
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          if [ "$BRANCH" = "HEAD" ]; then
+            BRANCH="master"
+          fi
+
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "REVISION=$REVISION" >> $GITHUB_ENV
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          # echo "BUILDUSER=$(whoami)@$(hostname)" >> $GITHUB_ENV
+          echo "BUILDUSER=xiaonuo (Author: xiaonuo)" >> $GITHUB_ENV
+          echo "BUILDDATE=$(TZ='Asia/Shanghai' date +'%Y-%m-%dT%H:%M:%S+08:00')" >> $GITHUB_ENV
+
+      - name: 调试版本信息
+        run: |
+          echo "VERSION: $VERSION"
+          echo "BRANCH: $BRANCH"
+          echo "REVISION: $REVISION"
+          echo "BUILDUSER: $BUILDUSER"
+          echo "BUILDDATE: $BUILDDATE"
       - name: 构建 Windows 多架构二进制文件
         working-directory: windows_exporter
         run: |
