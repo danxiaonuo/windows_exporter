@@ -27,6 +27,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.repository.owner.id == github.event.sender.id || ! github.event.sender.id
 
+    # 所有 shell 命令均使用 bash
+    defaults:
+      run:
+        shell: bash
+        
     steps:
       - name: 检出代码（包含子模块）
         uses: actions/checkout@v4
