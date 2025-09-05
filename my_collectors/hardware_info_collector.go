@@ -1,9 +1,11 @@
 package my_collectors
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,12 +13,12 @@ import (
 
 	"github.com/jaypipes/ghw"
 	"github.com/prometheus-community/windows_exporter/internal/mi"
+	"github.com/prometheus-community/windows_exporter/pkg/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/shirou/gopsutil/cpu"
 	"github.com/shirou/gopsutil/disk"
 	"github.com/shirou/gopsutil/host"
 	"github.com/shirou/gopsutil/mem"
-	"github.com/prometheus-community/windows_exporter/pkg/collector"
 )
 
 // =============================
@@ -38,6 +40,76 @@ var hardwareInfoInterval = func() time.Duration {
 	}
 	return 8 * time.Hour
 }()
+
+// 操作调用超时，默认10秒，可通过环境变量 HARDWARE_INFO_TIMEOUT 配置
+var hardwareInfoTimeout = func() time.Duration {
+	if v := os.Getenv("HARDWARE_INFO_TIMEOUT"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			return d
+		}
+	}
+	return 10 * time.Second
+}()
+
+// =============================
+// 带超时的辅助函数（用于不支持 context 的库调用）
+// =============================
+
+func getProductWithTimeout(ctx context.Context) (*ghw.ProductInfo, error) {
+	resultCh := make(chan struct{})
+	var (
+		res *ghw.ProductInfo
+		err error
+	)
+	go func() {
+		res, err = ghw.Product()
+		close(resultCh)
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-resultCh:
+		return res, err
+	}
+}
+
+func getBaseboardWithTimeout(ctx context.Context) (*ghw.BaseboardInfo, error) {
+	resultCh := make(chan struct{})
+	var (
+		res *ghw.BaseboardInfo
+		err error
+	)
+	go func() {
+		res, err = ghw.Baseboard()
+		close(resultCh)
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-resultCh:
+		return res, err
+	}
+}
+
+func getPlatformInformationWithTimeout(ctx context.Context) (string, string, string, error) {
+	resultCh := make(chan struct{})
+	var (
+		name    string
+		family  string
+		version string
+		err     error
+	)
+	go func() {
+		name, family, version, err = host.PlatformInformation()
+		close(resultCh)
+	}()
+	select {
+	case <-ctx.Done():
+		return "", "", "", ctx.Err()
+	case <-resultCh:
+		return name, family, version, err
+	}
+}
 
 // =============================
 // 硬件信息结构体
@@ -84,6 +156,8 @@ func getHardwareInfo() *HardwareInfo {
 // 真正采集硬件信息的函数
 // =============================
 func collectHardwareInfo() *HardwareInfo {
+    ctx, cancel := context.WithTimeout(context.Background(), hardwareInfoTimeout)
+    defer cancel()
 	info := &HardwareInfo{
 		BoardVendor:   "未知",
 		BoardProduct:  "未知",
@@ -101,8 +175,8 @@ func collectHardwareInfo() *HardwareInfo {
 		OSType:        "未知",
 		OSVersion:     "未知",
 	}
-	// 获取主板和系统信息
-	if p, err := ghw.Product(); err == nil {
+	// 获取主板和系统信息（带超时保护）
+	if p, err := getProductWithTimeout(ctx); err == nil && p != nil {
 		if p.Vendor != "" {
 			info.SystemVendor = p.Vendor
 		}
@@ -116,7 +190,7 @@ func collectHardwareInfo() *HardwareInfo {
 			info.SystemUUID = p.UUID
 		}
 	}
-	if b, err := ghw.Baseboard(); err == nil {
+	if b, err := getBaseboardWithTimeout(ctx); err == nil && b != nil {
 		if b.Vendor != "" {
 			info.BoardVendor = b.Vendor
 		}
@@ -130,37 +204,45 @@ func collectHardwareInfo() *HardwareInfo {
 			info.BoardVersion = b.Version
 		}
 	}
-	// 获取CPU信息
-	if c, err := cpu.Info(); err == nil && len(c) > 0 {
+	// 获取CPU信息（带超时）
+	if c, err := cpu.InfoWithContext(ctx); err == nil && len(c) > 0 {
 		if c[0].ModelName != "" {
 			info.CPUModel = c[0].ModelName
 		}
 		info.CPUCores = len(c)
 	}
-	// 获取内存信息
-	if m, err := mem.VirtualMemory(); err == nil {
+	// 获取内存信息（带超时）
+	if m, err := mem.VirtualMemoryWithContext(ctx); err == nil {
 		info.MemoryTotal = float64(m.Total)
 	}
-	// 获取磁盘总容量（遍历所有本地盘）
+	// 获取磁盘总容量（仅统计本地固定磁盘，带超时）
 	diskTotal := float64(0)
-	if parts, err := disk.Partitions(true); err == nil {
+	if parts, err := disk.PartitionsWithContext(ctx, false); err == nil {
 		for _, part := range parts {
-			if d, err := disk.Usage(part.Mountpoint); err == nil {
+			if ctx.Err() != nil {
+				break
+			}
+			// 仅统计固定本地盘，跳过网络盘、光驱、可移动盘
+			opts := strings.ToLower(part.Opts)
+			if strings.Contains(opts, "remote") || strings.Contains(opts, "cdrom") || strings.Contains(opts, "removable") {
+				continue
+			}
+			if d, err := disk.UsageWithContext(ctx, part.Mountpoint); err == nil {
 				diskTotal += float64(d.Total)
 			}
 		}
 	}
 	info.DiskTotal = diskTotal
-	// 获取操作系统信息
-	if h, err := host.Info(); err == nil {
-		if h.Platform != "" {
-			info.OSName = h.Platform
+	// 获取操作系统信息（避免调用 Info() 触发进程枚举，改用 PlatformInformation，带超时）
+	if name, family, version, err := getPlatformInformationWithTimeout(ctx); err == nil {
+		if name != "" {
+			info.OSName = name
 		}
-		if h.PlatformFamily != "" {
-			info.OSType = h.PlatformFamily
+		if family != "" {
+			info.OSType = family
 		}
-		if h.PlatformVersion != "" {
-			info.OSVersion = h.PlatformVersion
+		if version != "" {
+			info.OSVersion = version
 		}
 	}
 	return info
